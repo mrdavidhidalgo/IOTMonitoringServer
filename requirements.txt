@@ -1,0 +1,7 @@
+django
+paho-mqtt
+psycopg2-binary
+python-dateutil
+django-crispy-forms
+crispy-bootstrap4==2022.1
+schedule

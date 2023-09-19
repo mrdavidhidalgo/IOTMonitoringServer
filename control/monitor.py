@@ -10,7 +10,56 @@ from django.conf import settings
 
 client = mqtt.Client(settings.MQTT_USER_PUB)
 
-
+def analyze_temperature():
+    # Consulta todos los datos de la última hora, los agrupa por estación y variable
+    # Compara el promedio con los valores límite que están en la base de datos para esa variable.
+    # Si el promedio se excede de los límites, se envia un mensaje de alerta.
+    MAX_TEMPERATURE = 26
+    TEMPERATURE_LAST_REGISTERS = 10
+    MEASURE_NAME = "temperatura"
+    print("Calculando alertas...")
+    alert = False
+    
+    data = Data.objects.filter(
+        measurement__name=MEASURE_NAME).order_by("-base_time").select_related('station', 'measurement', 'values') \
+        .select_related('station__user', 'station__location') \
+        .select_related('station__location__city', 'station__location__state',
+                        'station__location__country') \
+        .values('station__user__username', 'values',
+                'measurement__name',
+                'station__location__city__name',
+                'station__location__state__name',
+                'station__location__country__name').first()
+        
+    print(f"Registros: {len(data['values'])}")
+    
+    values = data["values"][-30:]
+    print(values)
+    
+    variable = data["measurement__name"]
+    country = data['station__location__country__name']
+    state = data['station__location__state__name']
+    city = data['station__location__city__name']
+    user = data['station__user__username']
+    
+    count = sum(1 for value in values if value > MAX_TEMPERATURE)
+    
+    print(f"Se encontraron {count} registros con temperatura superior a {MAX_TEMPERATURE} grados. Ocurrencias para alertar: {TEMPERATURE_LAST_REGISTERS}")
+    
+    if count > TEMPERATURE_LAST_REGISTERS:
+        alert = True
+    
+        
+    if alert:
+        message = "ALERT: {} superada {} grados".format(variable, MAX_TEMPERATURE)
+        topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
+        print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
+        client.publish(topic, message)
+        print("Alerta enviada")
+    else:
+        print(f"No hay alertas por el momento para {MEASURE_NAME}")    
+    
+    
 def analyze_data():
     # Consulta todos los datos de la última hora, los agrupa por estación y variable
     # Compara el promedio con los valores límite que están en la base de datos para esa variable.
@@ -58,7 +107,6 @@ def analyze_data():
     print(len(aggregation), "dispositivos revisados")
     print(alerts, "alertas enviadas")
 
-
 def on_connect(client, userdata, flags, rc):
     '''
     Función que se ejecuta cuando se conecta al bróker.
@@ -105,7 +153,10 @@ def start_cron():
     Inicia el cron que se encarga de ejecutar la función analyze_data cada 5 minutos.
     '''
     print("Iniciando cron...")
-    schedule.every(5).minutes.do(analyze_data)
+    #schedule.every(5).seconds.do(analyze_data)
+    schedule.every(10).seconds.do(analyze_temperature)
+    schedule.every(10).seconds.do(analyze_data)
+    
     print("Servicio de control iniciado")
     while 1:
         schedule.run_pending()

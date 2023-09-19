@@ -14,6 +14,9 @@ import os
 from pathlib import Path
 from django.contrib import messages
 
+IP_VISUALIZADOR=os.getenv("IP_VISUALIZADOR")
+IP_DATABASE=os.getenv("IP_DATABASE")
+IP_MQTT=os.getenv("IP_MQTT")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,7 +30,7 @@ SECRET_KEY = 'django-insecure-bu+)8ft@9+qd*#e#f_s@wkyv2tmq+#!a^3j15h3kjk^jzksu0j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "ip.maquina.visualizador"]
+ALLOWED_HOSTS = ["localhost", IP_VISUALIZADOR]
 
 
 # Application definition
@@ -96,11 +99,10 @@ DATABASES = {
         "NAME": "iot_data",  # Nombre de la base de datos
         "USER": "dbadmin",  # Nombre de usuario
         "PASSWORD": "uniandesIOT1234*",  # Contraseña
-        "HOST": "ip.maquina.db",  # Dirección IP de la base de datos
+        "HOST": IP_DATABASE,  # Dirección IP de la base de datos
         "PORT": "",  # Puerto de la base de datos
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -156,7 +158,7 @@ LOGOUT_REDIRECT_URL = '/login/'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 # Dirección del bróker MQTT
-MQTT_HOST = "ip.maquina.mqtt"
+MQTT_HOST = IP_MQTT
 
 # Puerto del bróker MQTT
 MQTT_PORT = 8082
